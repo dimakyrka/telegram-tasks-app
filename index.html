@@ -1,1 +1,67 @@
-"" 
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Списки задач</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+        .task {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 5px;
+        }
+        .add-task {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Список задач</h1>
+    <div id="tasks"></div>
+    <div class="add-task">
+        <input type="text" id="new-task" placeholder="Новая задача">
+        <button onclick="addTask()">Добавить</button>
+    </div>
+
+    <script>
+        const tasks = [];
+
+        function renderTasks() {
+            const tasksContainer = document.getElementById('tasks');
+            tasksContainer.innerHTML = tasks.map((task, index) => `
+                <div class="task">
+                    ${index + 1}. ${task}
+                    <button onclick="removeTask(${index})">❌</button>
+                </div>
+            `).join('');
+        }
+
+        function addTask() {
+            const newTaskInput = document.getElementById('new-task');
+            const newTask = newTaskInput.value.trim();
+            if (newTask) {
+                tasks.push(newTask);
+                newTaskInput.value = '';
+                renderTasks();
+                Telegram.WebApp.sendData(JSON.stringify({ action: 'add_task', task: newTask }));
+            }
+        }
+
+        function removeTask(index) {
+            tasks.splice(index, 1);
+            renderTasks();
+            Telegram.WebApp.sendData(JSON.stringify({ action: 'remove_task', index }));
+        }
+
+        Telegram.WebApp.ready();
+        renderTasks();
+    </script>
+</body>
+</html>
