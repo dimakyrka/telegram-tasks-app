@@ -16,9 +16,15 @@
             margin: 5px 0;
             background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
             border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .add-task {
             margin-top: 20px;
+        }
+        button {
+            cursor: pointer;
         }
     </style>
 </head>
@@ -27,9 +33,82 @@
     <div id="tasks"></div>
     <div class="add-task">
         <input type="text" id="new-task" placeholder="Новая задача">
-        <button id="add-button">Добавить</button>
+        <button onclick="addTask()">Добавить</button>
     </div>
 
-    <script type="module" src="/src/main.js"></script>
+    <!-- Подключаем Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js"></script>
+
+    <script>
+        // Конфигурация Firebase (замените на свои данные)
+        const firebaseConfig = {
+            apiKey: "ВАШ_API_KEY",
+            authDomain: "ВАШ_AUTH_DOMAIN",
+            projectId: "ВАШ_PROJECT_ID",
+            storageBucket: "ВАШ_STORAGE_BUCKET",
+            messagingSenderId: "ВАШ_MESSAGING_SENDER_ID",
+            appId: "ВАШ_APP_ID"
+        };
+
+        // Инициализация Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Загрузка задач из Firestore
+        async function loadTasks() {
+            const tasksContainer = document.getElementById('tasks');
+            tasksContainer.innerHTML = "Загрузка...";
+
+            try {
+                const snapshot = await db.collection('tasks').get();
+                tasksContainer.innerHTML = "";
+
+                snapshot.forEach(doc => {
+                    const task = doc.data();
+                    tasksContainer.innerHTML += `
+                        <div class="task">
+                            <span>${task.text}</span>
+                            <button onclick="removeTask('${doc.id}')">❌</button>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error("Ошибка при загрузке задач:", error);
+                tasksContainer.innerHTML = "Ошибка при загрузке задач.";
+            }
+        }
+
+        // Добавление задачи в Firestore
+        async function addTask() {
+            const newTaskInput = document.getElementById('new-task');
+            const newTask = newTaskInput.value.trim();
+
+            if (newTask) {
+                try {
+                    await db.collection('tasks').add({ text: newTask });
+                    newTaskInput.value = '';
+                    loadTasks();
+                } catch (error) {
+                    console.error("Ошибка при добавлении задачи:", error);
+                }
+            } else {
+                alert("Поле ввода пустое.");
+            }
+        }
+
+        // Удаление задачи из Firestore
+        async function removeTask(taskId) {
+            try {
+                await db.collection('tasks').doc(taskId).delete();
+                loadTasks();
+            } catch (error) {
+                console.error("Ошибка при удалении задачи:", error);
+            }
+        }
+
+        // Загружаем задачи при открытии страницы
+        loadTasks();
+    </script>
 </body>
 </html>
