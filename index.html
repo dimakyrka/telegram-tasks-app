@@ -30,38 +30,64 @@
         <button onclick="addTask()">Добавить</button>
     </div>
 
-    <script>
-        const tasks = [];
+    <!-- Подключаем Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js"></script>
 
-        function renderTasks() {
+    <script>
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDezifmC7dI3RqEKgnNa9__1o8CXRGI2cs",
+            authDomain: "telegram-tasks-app.firebaseapp.com",
+            projectId: "telegram-tasks-app",
+            storageBucket: "telegram-tasks-app.firebasestorage.app",
+            messagingSenderId: "336823830946",
+            appId: "1:336823830946:web:640cb09b7ac3ad638a4afb"
+        };
+
+        // Инициализация Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Загрузка задач из Firestore
+        async function loadTasks() {
             const tasksContainer = document.getElementById('tasks');
-            tasksContainer.innerHTML = tasks.map((task, index) => `
-                <div class="task">
-                    ${index + 1}. ${task}
-                    <button onclick="removeTask(${index})">❌</button>
-                </div>
-            `).join('');
+            tasksContainer.innerHTML = "Загрузка...";
+
+            const snapshot = await db.collection('tasks').get();
+            tasksContainer.innerHTML = "";
+
+            snapshot.forEach(doc => {
+                const task = doc.data();
+                tasksContainer.innerHTML += `
+                    <div class="task">
+                        ${task.text}
+                        <button onclick="removeTask('${doc.id}')">❌</button>
+                    </div>
+                `;
+            });
         }
 
-        function addTask() {
+        // Добавление задачи в Firestore
+        async function addTask() {
             const newTaskInput = document.getElementById('new-task');
             const newTask = newTaskInput.value.trim();
+
             if (newTask) {
-                tasks.push(newTask);
+                await db.collection('tasks').add({ text: newTask });
                 newTaskInput.value = '';
-                renderTasks();
-                Telegram.WebApp.sendData(JSON.stringify({ action: 'add_task', task: newTask }));
+                loadTasks();
             }
         }
 
-        function removeTask(index) {
-            tasks.splice(index, 1);
-            renderTasks();
-            Telegram.WebApp.sendData(JSON.stringify({ action: 'remove_task', index }));
+        // Удаление задачи из Firestore
+        async function removeTask(taskId) {
+            await db.collection('tasks').doc(taskId).delete();
+            loadTasks();
         }
 
-        Telegram.WebApp.ready();
-        renderTasks();
+        // Загружаем задачи при открытии страницы
+        loadTasks();
     </script>
 </body>
 </html>
